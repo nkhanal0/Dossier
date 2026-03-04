@@ -6,7 +6,7 @@ import { LeftSidebar } from '@/components/dossier/left-sidebar';
 import { WorkflowBlock } from '@/components/dossier/workflow-block';
 import { RightPanel } from '@/components/dossier/right-panel';
 import { ConfirmDeleteDialog } from '@/components/dossier/confirm-delete-dialog';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, PanelRightOpen } from 'lucide-react';
 import type { ContextArtifact, CardKnowledgeForDisplay } from '@/lib/types/ui';
 import { useMapSnapshot, useCardKnowledge, useCardPlannedFiles, useCardContextArtifacts, useArtifacts, useProjectFiles, useSubmitAction, useTriggerBuild, fetchRefDocContent } from '@/lib/hooks';
 import { useProjects } from '@/lib/hooks/use-projects';
@@ -671,7 +671,11 @@ export default function DossierPage() {
     async (title: string) => {
       if (!projectId || !submitAction) return;
       const workflows = snapshot?.workflows ?? [];
-      const position = workflows.length;
+      const maxPosition = workflows.reduce(
+        (max, workflow) => Math.max(max, workflow.position ?? -1),
+        -1
+      );
+      const position = maxPosition + 1;
       const result = await submitAction({
         actions: [
           {
@@ -687,7 +691,7 @@ export default function DossierPage() {
         toast.error(result.results[0].rejection_reason);
       }
     },
-    [projectId, submitAction, snapshot?.workflows?.length, refetch]
+    [projectId, submitAction, snapshot?.workflows, refetch]
   );
 
   const handleAddActivity = useCallback(
@@ -990,6 +994,16 @@ export default function DossierPage() {
           )}
         </div>
 
+        {!rightPanelOpen && (
+          <button
+            type="button"
+            onClick={() => setRightPanelOpen(true)}
+            className="flex-shrink-0 flex items-center justify-center w-8 min-h-[4rem] py-2 border-l border-border bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title="Open panel"
+          >
+            <PanelRightOpen className="h-4 w-4" />
+          </button>
+        )}
         {rightPanelOpen && (
           <>
             <div
