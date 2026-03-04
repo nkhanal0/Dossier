@@ -77,7 +77,16 @@ export function extractJsonObject(text: string): string | null {
   const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
     const inner = codeBlockMatch[1].trim();
-    if (inner.startsWith("{")) return inner;
+    if (inner.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(inner);
+        if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed))
+          return inner;
+      } catch {
+        // Code-block regex matched a nested fence inside JSON content;
+        // fall through to findBalanced which handles quoted strings correctly.
+      }
+    }
   }
 
   const objStart = trimmed.indexOf("{");
@@ -118,7 +127,15 @@ export function extractJsonArray(text: string): string | null {
   const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
     const inner = codeBlockMatch[1].trim();
-    if (inner.startsWith("[")) return inner;
+    if (inner.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(inner);
+        if (Array.isArray(parsed)) return inner;
+      } catch {
+        // Code-block regex matched a nested fence inside JSON content;
+        // fall through to findBalanced which handles quoted strings correctly.
+      }
+    }
   }
 
   const arrayStart = trimmed.indexOf("[");

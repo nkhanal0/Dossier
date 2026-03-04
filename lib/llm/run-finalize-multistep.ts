@@ -15,13 +15,19 @@ import { runLlmSubStep, type Emitter } from "@/lib/llm/run-llm-substep";
  * but increases output size and timeout risk. Holistic context could improve
  * cross-doc consistency. Consider if parallel still times out.
  */
+export interface FinalizeResult {
+  artifactsCreated: number;
+  failedDocs: string[];
+  totalDocs: number;
+}
+
 export async function runFinalizeMultiStep(opts: {
   db: DbAdapter;
   projectId: string;
   state: PlanningState;
   emit: Emitter;
   mockResponse?: string;
-}): Promise<number> {
+}): Promise<FinalizeResult> {
   const { db, projectId, emit, mockResponse } = opts;
   const state = opts.state;
   const totalSteps = FINALIZE_DOC_SPECS.length;
@@ -56,7 +62,7 @@ export async function runFinalizeMultiStep(opts: {
           status: "complete",
           label: `Created ${spec.label}`,
         });
-        return result.actionCount;
+        return { actionCount: result.actionCount, failed: false, name: spec.name };
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Doc generation failed";
         console.error(`[finalize] Doc generation failed for ${spec.name}:`, msg);
@@ -68,10 +74,13 @@ export async function runFinalizeMultiStep(opts: {
           status: "error",
           label: `Failed: ${spec.label}`,
         });
-        return 0;
+        return { actionCount: 0, failed: true, name: spec.name };
       }
     }),
   );
 
-  return results.reduce((a, b) => a + b, 0);
+  const failedDocs = results.filter((r) => r.failed || r.actionCount === 0).map((r) => r.name);
+  const artifactsCreated = results.reduce((a, r) => a + r.actionCount, 0);
+
+  return { artifactsCreated, failedDocs, totalDocs: totalSteps };
 }

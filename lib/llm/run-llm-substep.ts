@@ -18,8 +18,9 @@ export async function runLlmSubStep(opts: {
   emit: Emitter;
   actionFilter?: (action: PlanningAction) => boolean;
   mockResponse?: string;
+  maxTokens?: number;
 }): Promise<{ actionCount: number; updatedState: PlanningState }> {
-  const { db, projectId, systemPrompt, userMessage, emit, actionFilter, mockResponse } = opts;
+  const { db, projectId, systemPrompt, userMessage, emit, actionFilter, mockResponse, maxTokens } = opts;
   let currentState = opts.state;
 
   const useMock =
@@ -30,7 +31,7 @@ export async function runLlmSubStep(opts: {
   let rawLlmOutput = "";
   const llmStreamRaw = useMock
     ? null
-    : await claudeStreamingRequest({ systemPrompt, userMessage });
+    : await claudeStreamingRequest({ systemPrompt, userMessage }, { maxTokens });
   const llmStream = useMock
     ? new ReadableStream<string>({
         start(ctrl) {
@@ -114,8 +115,9 @@ export async function runLlmSubStep(opts: {
 
   if (!useMock && rawLlmOutput) {
     if (actionCount === 0) {
+      const tail = rawLlmOutput.slice(-200);
       console.warn(
-        "[planning] LLM sub-step produced 0 actions. Raw output:\n",
+        `[planning] LLM sub-step produced 0 actions. Length: ${rawLlmOutput.length}. Tail: ${tail}\nRaw output:\n`,
         rawLlmOutput.slice(0, 4000),
         rawLlmOutput.length > 4000 ? "\n...(truncated)" : "",
       );

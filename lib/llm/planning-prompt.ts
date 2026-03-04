@@ -715,7 +715,8 @@ The actions array must contain exactly ONE createContextArtifact action.
 2. Use IDs from the provided map state — never invent IDs that don't exist
 3. Generate a new UUID for the createContextArtifact action id
 4. Write for build agents, not humans — be precise about file paths, module boundaries, and interface contracts
-5. Return ONLY valid JSON. No markdown, no \`\`\`json wrapper.`;
+5. Return ONLY valid JSON. No markdown, no \`\`\`json wrapper.
+6. HARD LIMIT: Keep the document content under 2500 words. Be dense and actionable — omit verbose explanations, lengthy code samples, and exhaustive enumerations. Prefer tables and bullet lists over prose. If a section would exceed the budget, summarize and reference where agents can derive details from the map state.`;
 }
 
 /**
@@ -759,7 +760,8 @@ Respond with a JSON object: { "type": "actions", "message": "optional brief summ
 - It may contain **zero or more** createContextArtifact with type "doc" for card-specific context (add when the card involves external API/integration).
 - Every action must include "card_id": "<card_id>" in the payload so artifacts appear on the card in the UI.
 - Generate a new UUID for each action id.
-- Return ONLY valid JSON. No markdown, no \`\`\`json wrapper.`;
+- Return ONLY valid JSON. No markdown, no \`\`\`json wrapper.
+- HARD LIMIT: Keep each artifact's content under 2500 words. Be concise — focus on what build agents need to implement and verify. Omit filler.`;
 }
 
 /**
