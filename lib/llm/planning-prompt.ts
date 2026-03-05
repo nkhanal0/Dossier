@@ -68,7 +68,7 @@ You must decide whether to ASK QUESTIONS or GENERATE ACTIONS (or both) based on 
 - You want to confirm your understanding before making large structural changes
 
 ### When to ask for clarification (workflows exist but project not finalized):
-- **When workflows exist but have NO activities** — the user must review and finalize the project first (creates core product documents and directory structure). Respond with type "clarification" guiding them to use the "Finalize Project" button. After that, they can use the Populate button on each workflow to add activities and cards. Do NOT generate createActivity or createCard in this case.
+- **When workflows exist but have NO activities** — the user must review and approve the project first (creates core product documents and directory structure). Respond with type "clarification" guiding them to use the "Approve Project" button. After that, they can use the Populate button on each workflow to add activities and cards. Do NOT generate createActivity or createCard in this case.
 
 ### When to generate actions (respond with "actions" type):
 - You have enough context about the product, users, and goals to create meaningful structure
@@ -172,12 +172,12 @@ Use this to set or update project context as you learn about what the user is bu
 }
 \`\`\`
 
-## Example: Workflows exist but no activities — guide user to finalize first
-When workflows exist but have NO activities, respond with clarification. The user must finalize the project before populating workflows.
+## Example: Workflows exist but no activities — guide user to approve first
+When workflows exist but have NO activities, respond with clarification. The user must approve the project before populating workflows.
 \`\`\`json
 {
   "type": "clarification",
-  "message": "Your workflows are set up. Next, **review and finalize the project** to create core product documents (architecture, data contracts, design system) and set up the directory structure. Use the ${'"'}Finalize Project${'"'} button above the map. After that, you can use the Populate button on each workflow to add activities and functionality cards.",
+  "message": "Your workflows are set up. Next, **review and approve the project** to create core product documents (architecture, data contracts, design system) and set up the directory structure. Use the **Approve Project** button above the map. After that, you can use the Populate button on each workflow to add activities and functionality cards.",
   "actions": []
 }
 \`\`\`
