@@ -56,8 +56,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (parsed.data.repo_url !== undefined) updates.repo_url = parsed.data.repo_url;
     if (parsed.data.default_branch !== undefined)
       updates.default_branch = parsed.data.default_branch;
-    if (parsed.data.finalized_at !== undefined)
-      updates.finalized_at = parsed.data.finalized_at;
 
     if (Object.keys(updates).length === 0) {
       return json(existing);
