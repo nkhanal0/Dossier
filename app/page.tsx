@@ -439,12 +439,14 @@ export default function DossierPage() {
           status?: string;
           message?: string;
           artifacts_created?: number;
+          failed_docs?: string[];
           error?: string;
         };
         if (!res.ok) {
           const msg = data.message ?? data.error ?? `Approve failed (${res.status})`;
+          const failedDocs = data.failed_docs?.length ? ` Failed docs: ${data.failed_docs.join(', ')}.` : '';
           const { toast } = await import('sonner');
-          toast.error(msg);
+          toast.error(`${msg}${failedDocs} Check server logs to investigate.`);
           return;
         }
         const count = data.artifacts_created ?? 0;

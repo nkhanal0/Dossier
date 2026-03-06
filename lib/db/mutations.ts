@@ -6,6 +6,7 @@
  */
 
 import type { DbAdapter } from "@/lib/db/adapter";
+import { isProjectLevelDocArtifact } from "@/lib/schemas/planning-state";
 import { validate as uuidValidate } from "uuid";
 import {
   getProject,
@@ -149,7 +150,11 @@ export async function applyAction(
   const isTestArtifact =
     action.action_type === "createContextArtifact" &&
     (action.payload as Record<string, unknown>).type === "test";
-  if (!isTestArtifact && isCodeGenerationIntent(action.payload)) {
+  const isProjectDoc = isProjectLevelDocArtifact(
+    action.action_type,
+    action.payload as Record<string, unknown>,
+  );
+  if (!isTestArtifact && !isProjectDoc && isCodeGenerationIntent(action.payload)) {
     return { applied: false, rejectionReason: "Code-generation intents are forbidden" };
   }
 

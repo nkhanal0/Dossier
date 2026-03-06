@@ -148,13 +148,37 @@ export function getMaxPosition(
 }
 
 /**
+ * Project-level finalize docs (architectural-summary, design-system, etc.) are
+ * descriptive context artifacts. Their content often mentions "implementation"
+ * or "add tests" in prose; we do not treat that as code-generation intent.
+ */
+export function isProjectLevelDocArtifact(
+  actionType: string,
+  payload: Record<string, unknown>,
+): boolean {
+  if (actionType !== "createContextArtifact") return false;
+  const type = payload.type as string | undefined;
+  const cardId = payload.card_id as string | null | undefined;
+  if (cardId != null && cardId !== "") return false;
+  return (
+    type === "doc" ||
+    type === "design" ||
+    type === "architectural_summary" ||
+    type === "scaffold" ||
+    type === "spec"
+  );
+}
+
+/**
  * Check if action contains code generation intent
  * Rejects actions that propose generating production code.
+ * Project-level doc/design artifacts are exempt (finalize docs).
  */
 export function containsCodeGenerationIntent(
   actionType: string,
   payload: Record<string, unknown>,
 ): boolean {
+  if (isProjectLevelDocArtifact(actionType, payload)) return false;
   // Check for explicit code generation keywords in payloads
   const suspiciousPatterns = [
     /generate.*code/i,

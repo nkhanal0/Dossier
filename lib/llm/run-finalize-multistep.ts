@@ -54,6 +54,7 @@ export async function runFinalizeMultiStep(opts: {
           emit,
           actionFilter: (a) => a.action_type === "createContextArtifact",
           mockResponse,
+          stepLabel: spec.name,
         });
         emit("finalize_progress", {
           step: "doc",

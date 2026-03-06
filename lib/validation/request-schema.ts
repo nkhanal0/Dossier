@@ -37,6 +37,7 @@ export const updateProjectSchema = z.object({
   design_inspiration: z.string().nullable().optional(),
   repo_url: z.string().url().nullable().optional(),
   default_branch: z.string().min(1).optional(),
+  finalized_at: z.string().datetime().nullable().optional(),
 });
 
 // Action submission

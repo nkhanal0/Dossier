@@ -25,6 +25,7 @@ export const artifactTypeSchema = z.enum([
   "spec",
   "runbook",
   "test",
+  "scaffold", // project-level file/folder listing for finalize
 ]);
 
 export const plannedFileActionSchema = z.enum(["create", "edit"]);

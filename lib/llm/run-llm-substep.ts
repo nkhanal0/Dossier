@@ -19,8 +19,10 @@ export async function runLlmSubStep(opts: {
   actionFilter?: (action: PlanningAction) => boolean;
   mockResponse?: string;
   maxTokens?: number;
+  /** Optional label for logs when actionCount === 0 (e.g. finalize doc name) */
+  stepLabel?: string;
 }): Promise<{ actionCount: number; updatedState: PlanningState }> {
-  const { db, projectId, systemPrompt, userMessage, emit, actionFilter, mockResponse, maxTokens } = opts;
+  const { db, projectId, systemPrompt, userMessage, emit, actionFilter, mockResponse, maxTokens, stepLabel } = opts;
   let currentState = opts.state;
 
   const useMock =
@@ -62,7 +64,8 @@ export async function runLlmSubStep(opts: {
   for await (const result of parseActionsFromStream(llmStream)) {
     if (result.type === "response_type") {
       if (result.responseType === "clarification") {
-        console.warn("[planning] LLM returned type 'clarification' — skipping actions.");
+        const label = stepLabel ? ` (${stepLabel})` : "";
+        console.warn("[planning] LLM returned type 'clarification' — skipping actions" + label);
         return { actionCount, updatedState: currentState };
       }
       continue;
@@ -96,13 +99,17 @@ export async function runLlmSubStep(opts: {
     );
 
     if (rejected.length > 0) {
-      emit("error", { action: actionWithProjectId, reason: rejected[0].reason });
+      const reason = rejected[0].reason;
+      if (stepLabel) console.warn(`[planning] Validation rejected (${stepLabel}):`, reason);
+      emit("error", { action: actionWithProjectId, reason });
       continue;
     }
 
     const applyResult = await pipelineApply(db, projectId, valid);
     if (applyResult.failedAt !== undefined) {
-      emit("error", { action: actionWithProjectId, reason: applyResult.rejectionReason ?? "Apply failed" });
+      const reason = applyResult.rejectionReason ?? "Apply failed";
+      if (stepLabel) console.warn(`[planning] Apply failed (${stepLabel}):`, reason);
+      emit("error", { action: actionWithProjectId, reason });
       continue;
     }
 
@@ -115,9 +122,10 @@ export async function runLlmSubStep(opts: {
 
   if (!useMock && rawLlmOutput) {
     if (actionCount === 0) {
+      const label = stepLabel ? ` (${stepLabel})` : "";
       const tail = rawLlmOutput.slice(-200);
       console.warn(
-        `[planning] LLM sub-step produced 0 actions. Length: ${rawLlmOutput.length}. Tail: ${tail}\nRaw output:\n`,
+        `[planning] LLM sub-step produced 0 actions${label}. Length: ${rawLlmOutput.length}. Tail: ${tail}\nRaw output:\n`,
         rawLlmOutput.slice(0, 4000),
         rawLlmOutput.length > 4000 ? "\n...(truncated)" : "",
       );
