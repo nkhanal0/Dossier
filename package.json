@@ -1,6 +1,7 @@
 {
   "name": "dossier-agentic-product-planner-builder",
   "version": "0.5.2",
+  "author": "Dossier",
   "repository": "https://github.com/rwliebs/Dossier",
   "description": "AI-native product craft platform — plan workflows, orchestrate multi-agent builds, ship iteratively",
   "main": "electron/main.js",
@@ -43,6 +44,7 @@
     "electron:dev": "pnpm run electron:compile && electron-forge start",
     "electron:package": "pnpm run build && pnpm run electron:prepare-node && pnpm run electron:compile && electron-forge package",
     "electron:make": "pnpm run build && pnpm run electron:prepare-node && pnpm run electron:compile && electron-forge make",
+    "electron:publish": "pnpm run electron:make && electron-forge publish",
     "website:install": "cd website && npm install",
     "website:build": "cd website && npm run build",
     "website:dev": "cd website && npm run dev",
@@ -109,7 +111,9 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
-    "zod": "^4.0.0"
+    "zod": "^4.0.0",
+    "electron-squirrel-startup": "^1.0.1",
+    "update-electron-app": "^3.1.2"
   },
   "devDependencies": {
     "@browserbasehq/stagehand": "^3.0.8",
@@ -119,6 +123,7 @@
     "@electron-forge/maker-squirrel": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
+    "@electron-forge/publisher-github": "^7.11.1",
     "@electron/rebuild": "^4.0.3",
     "@eslint/js": "^9.17.0",
     "@tailwindcss/postcss": "^4.1.9",

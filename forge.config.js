@@ -1,4 +1,13 @@
-const path = require("path");
+// const path = require("path");
+
+// Signing/notarization (commented out until ready; uncomment and set env vars in CI):
+// const hasAppleCreds =
+//   process.env.APPLE_ID && (process.env.APPLE_APP_SPECIFIC_PASSWORD || process.env.APPLE_API_KEY_ID);
+// const hasAppleApiKey =
+//   process.env.APPLE_API_KEY_ID &&
+//   process.env.APPLE_API_ISSUER &&
+//   process.env.APPLE_API_KEY_PATH;
+// const hasWindowsCert = process.env.WINDOWS_CERTIFICATE_PFX_BASE64 && process.env.WINDOWS_CERTIFICATE_PASSWORD;
 
 /** @type {import('@electron-forge/shared-types').ForgeConfig} */
 module.exports = {
@@ -18,6 +27,23 @@ module.exports = {
       // Exclude everything else (node_modules, .next, app/, lib/, docs/, etc.)
       return true;
     },
+    // macOS: code sign (commented out until ready)
+    // ...(process.platform === "darwin" && { osxSign: {} }),
+    // macOS: notarize (commented out until ready)
+    // ...(process.platform === "darwin" &&
+    //   hasAppleCreds && {
+    //     osxNotarize: hasAppleApiKey
+    //       ? {
+    //           appleApiKey: process.env.APPLE_API_KEY_PATH,
+    //           appleApiKeyId: process.env.APPLE_API_KEY_ID,
+    //           appleApiIssuer: process.env.APPLE_API_ISSUER,
+    //         }
+    //       : {
+    //           appleId: process.env.APPLE_ID,
+    //           appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+    //           teamId: process.env.APPLE_TEAM_ID,
+    //         },
+    //   }),
   },
   rebuildConfig: {
     // Skip rebuild: Next.js server runs in separate Node process, not in Electron.
@@ -26,13 +52,23 @@ module.exports = {
   },
   makers: [
     { name: "@electron-forge/maker-dmg", config: {} },
-    { name: "@electron-forge/maker-squirrel", config: {} },
+    { name: "@electron-forge/maker-squirrel", config: {} }, // Windows signing: add certificateFile + certificatePassword when ready
     { name: "@electron-forge/maker-deb", config: {} },
   ],
   plugins: [
     {
       name: "@electron-forge/plugin-auto-unpack-natives",
       config: {},
+    },
+  ],
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: { owner: "rwliebs", name: "Dossier" },
+        prerelease: false,
+        draft: false,
+      },
     },
   ],
 };

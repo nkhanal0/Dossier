@@ -179,3 +179,13 @@ docs_index:
           summary: "Three channels: npm publish, CLI entry, Electron desktop app"
       depends_on: []
       last_verified: "2026-03-06"
+
+    - id: doc.desktop-build-distribution
+      path: reference/desktop-build-and-distribution.md
+      tokens_estimate: 600
+      tags: [releases, desktop, electron, windows, linux, macos, installers]
+      anchors:
+        - id: ci
+          summary: "Desktop installers workflow: manual or on v* tag; download .exe, .deb, .dmg"
+      depends_on: [doc.releases-distribution]
+      last_verified: "2026-03-06"

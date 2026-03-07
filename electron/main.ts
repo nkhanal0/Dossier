@@ -9,6 +9,14 @@ import { existsSync, readFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { getDataDir, resolveNodeExecutable } from "./runtime";
 import { handleActivateWindow } from "./window-lifecycle";
+import { updateElectronApp } from "update-electron-app";
+
+// Handle Squirrel events (install/update/uninstall) on Windows; quit if handled.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+if (require("electron-squirrel-startup")) {
+  app.quit();
+  process.exit(0);
+}
 
 let serverProcess: ChildProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
@@ -208,6 +216,11 @@ async function main(): Promise<void> {
   app.setName("Dossier");
 
   await app.whenReady();
+
+  // Auto-update from GitHub Releases (update.electronjs.org for open-source apps)
+  if (app.isPackaged) {
+    updateElectronApp({ repo: "rwliebs/Dossier" });
+  }
 
   createWindow();
 
