@@ -59,8 +59,16 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - name: Install Linux deps (deb maker)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Set NODE_OPTIONS for Windows (memory)
+        if: matrix.os == 'windows-latest'
+        run: echo "NODE_OPTIONS=--max-old-space-size=4096" >> $GITHUB_ENV
 
       # Signing steps (commented out until ready)
       # - name: Prepare Apple API key for notarization
