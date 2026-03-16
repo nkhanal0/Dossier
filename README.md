@@ -115,19 +115,34 @@ Product
 
 ## Quickstart
 
-**One-shot run (Node 18+):**  
-Package is published to NPM:
+### Docker (recommended)
+
 ```bash
-npx @rwliebs/dossier-agentic-product-planner-builder
+docker run -d \
+  --name dossier \
+  -p 3000:3000 \
+  -v ~/.dossier:/root/.dossier \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -e GITHUB_TOKEN=ghp_... \
+  aenkay/dossier:latest
 ```
 
-**Or from source:**
+Open **http://localhost:3000**. Data persists in `~/.dossier/`.
+
+### From source
+
 ```bash
-git clone https://github.com/rwliebs/Dossier.git
+git clone https://github.com/nkhanal0/Dossier.git
 cd Dossier
-pnpm install        # or: npm install
+pnpm install
 pnpm run build
-pnpm run dossier
+node .next/standalone/server.js
+```
+
+### Original NPM package
+
+```bash
+npx @rwliebs/dossier-agentic-product-planner-builder
 ```
 
 Your browser will open to **http://localhost:3000**. First run creates `~/.dossier`.
@@ -186,6 +201,44 @@ Dossier is the product of hard-won experience: a year of building seriously with
 ## Contributing
 
 Contributions are welcome. Open an issue to discuss what you'd like to change, or submit a pull request.
+
+---
+
+## Fork Notes (aenkay)
+
+This is a fork of [rwliebs/Dossier](https://github.com/rwliebs/Dossier) with:
+
+- **Dockerfile** — multi-stage build for containerized deployment
+- **Docker image** — published to `aenkay/dossier` on Docker Hub
+- **Updated quickstart** — Docker-first setup instructions
+
+### Docker Build
+
+```bash
+# Build locally
+docker build -t aenkay/dossier:latest .
+
+# Run with API keys
+docker run -d \
+  --name dossier \
+  -p 3000:3000 \
+  -v ~/.dossier:/root/.dossier \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -e GITHUB_TOKEN=ghp_... \
+  aenkay/dossier:latest
+
+# Or configure via web UI at /setup after starting without keys
+docker run -d -p 3000:3000 -v ~/.dossier:/root/.dossier aenkay/dossier:latest
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key for planning LLM |
+| `GITHUB_TOKEN` | No | GitHub token (repo scope) for PR workflows |
+| `PLANNING_LLM_MODEL` | No | Default: `claude-haiku-4-5-20251001` |
+| `DB_DRIVER` | No | `sqlite` (default) or `postgres` |
 
 ---
 

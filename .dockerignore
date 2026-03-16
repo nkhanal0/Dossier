@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+*.md
+!README.md
+.env*
+!.env.example
+__tests__
+docs
+website
+.dossier
