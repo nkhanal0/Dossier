@@ -1,4 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { execFile } from "node:child_process";
+import { readConfigFile } from "@/lib/config/data-dir";
+import { claudeBridgeRequest, claudeBridgeStream } from "./claude-bridge";
 import type { PlanningState } from "@/lib/schemas/planning-state";
 import type { ContextArtifact } from "@/lib/schemas/slice-b";
 import {
@@ -11,6 +14,21 @@ import {
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 const DEFAULT_MAX_TOKENS = 16384;
 const DEFAULT_TIMEOUT_MS = 120_000;
+
+/**
+ * Check if we should use local Claude CLI instead of Anthropic API.
+ */
+function useClaudeCli(): boolean {
+  if (process.env.USE_CLAUDE_CLI === 'true') return true;
+  try {
+    const cfg = readConfigFile();
+    return cfg.USE_CLAUDE_CLI === 'true';
+  } catch {
+    return false;
+  }
+}
+
+// claudeCliRequest removed — now using claude-bridge module for persistent session support
 
 export interface ClaudeStreamingRequestInput {
   systemPrompt: string;
@@ -62,21 +80,51 @@ export async function claudePlanningRequest(
     userMessageOverride?: string;
   },
 ): Promise<ClaudePlanningResponse> {
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const systemPrompt = options?.systemPromptOverride ?? buildPlanningSystemPrompt();
+  const history = input.conversationHistory ?? [];
+
+  const userMessage = options?.userMessageOverride
+    ?? (history.length > 0
+      ? buildConversationMessages(
+          input.userRequest,
+          input.mapSnapshot,
+          input.linkedArtifacts ?? [],
+          history,
+        ).map(m => m.content).join('\n\n')
+      : buildPlanningUserMessage(
+          input.userRequest,
+          input.mapSnapshot,
+          input.linkedArtifacts ?? [],
+        ));
+
+  // Use local Claude CLI bridge if configured (uses Max plan, no API key needed)
+  if (useClaudeCli()) {
+    const result = await claudeBridgeRequest(
+      systemPrompt,
+      typeof userMessage === 'string' ? userMessage : JSON.stringify(userMessage),
+      { timeoutMs, model: process.env.CLAUDE_CLI_MODEL || 'haiku' },
+    );
+    return {
+      text: result.text,
+      stopReason: 'end_turn',
+      usage: { inputTokens: 0, outputTokens: 0 },
+      model: result.model,
+    };
+  }
+
+  // Fall back to Anthropic API
   const apiKey = options?.apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "ANTHROPIC_API_KEY is required for planning LLM. Set it in .env.local.",
+      "ANTHROPIC_API_KEY is required for planning LLM. Set USE_CLAUDE_CLI=true in ~/.dossier/config to use local Claude Code instead.",
     );
   }
 
   const model = options?.model ?? process.env.PLANNING_LLM_MODEL ?? DEFAULT_MODEL;
   const maxTokens = options?.maxTokens ?? DEFAULT_MAX_TOKENS;
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   const client = new Anthropic({ apiKey });
-
-  const systemPrompt = options?.systemPromptOverride ?? buildPlanningSystemPrompt();
-  const history = input.conversationHistory ?? [];
 
   const messages = options?.userMessageOverride
     ? [{ role: "user" as const, content: options.userMessageOverride }]
@@ -103,7 +151,6 @@ export async function claudePlanningRequest(
       system: systemPrompt,
       messages,
       stream: false as const,
-      // Prompt caching: cache system + prefix for 5m; repeat requests reuse cache (lower cost/latency).
       cache_control: { type: "ephemeral" },
     };
     const message = await client.messages.create(
@@ -167,16 +214,27 @@ export async function claudeStreamingRequest(
     timeoutMs?: number;
   },
 ): Promise<ReadableStream<string>> {
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+  // Use local Claude CLI bridge if configured (streaming via stream-json)
+  if (useClaudeCli()) {
+    return claudeBridgeStream(
+      input.systemPrompt,
+      input.userMessage,
+      { timeoutMs, model: process.env.CLAUDE_CLI_MODEL || 'haiku' },
+    );
+  }
+
+  // Fall back to Anthropic API
   const apiKey = options?.apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "ANTHROPIC_API_KEY is required for planning LLM. Set it in .env.local.",
+      "ANTHROPIC_API_KEY is required. Set USE_CLAUDE_CLI=true in ~/.dossier/config to use local Claude Code instead.",
     );
   }
 
   const model = options?.model ?? process.env.PLANNING_LLM_MODEL ?? DEFAULT_MODEL;
   const maxTokens = options?.maxTokens ?? DEFAULT_MAX_TOKENS;
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   const client = new Anthropic({ apiKey });
   const controller = new AbortController();
@@ -194,7 +252,6 @@ export async function claudeStreamingRequest(
       max_tokens: maxTokens,
       system: input.systemPrompt,
       messages: [{ role: "user", content: input.userMessage }],
-      // Prompt caching: cache system + prefix for 5m; repeat requests reuse cache.
       cache_control: { type: "ephemeral" },
     } as Parameters<typeof client.messages.stream>[0],
     { signal: controller.signal },

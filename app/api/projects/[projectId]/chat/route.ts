@@ -321,20 +321,23 @@ export async function POST(
     } catch (e) {
       const err = e instanceof Error ? e.message : "Planning service error";
       console.error("[chat] Planning LLM error:", err);
+      console.error("[chat] Full error:", e);
 
       let userMsg: string;
       if (err.includes("ANTHROPIC_API_KEY")) {
-        userMsg = "Planning LLM not configured. Set ANTHROPIC_API_KEY.";
-      } else if (err.includes("timed out") || err.includes("aborted")) {
+        userMsg = "Planning LLM not configured. Set ANTHROPIC_API_KEY or USE_CLAUDE_CLI=true.";
+      } else if (err.includes("timed out") || err.includes("aborted") || err.includes("ETIMEDOUT")) {
         userMsg = "Planning request timed out. Try again.";
       } else if (err.includes("credit balance") || err.includes("billing")) {
-        userMsg = "Anthropic API credit balance is too low.";
+        userMsg = "Anthropic API credit balance is too low. Set USE_CLAUDE_CLI=true in ~/.dossier/config to use local Claude Code instead.";
       } else if (err.includes("401") || err.includes("authentication")) {
         userMsg = "Anthropic API key is invalid.";
       } else if (err.includes("429") || err.includes("rate limit")) {
         userMsg = "Rate limit exceeded. Please try again in a moment.";
+      } else if (err.includes("Claude CLI failed")) {
+        userMsg = `Claude CLI error: ${err}`;
       } else {
-        userMsg = "Planning service temporarily unavailable.";
+        userMsg = `Planning service error: ${err}`;
       }
       return json({ status: "error", message: userMsg }, 502);
     }

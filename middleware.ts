@@ -9,10 +9,17 @@ export const config = {
 const SETUP_PATH = "/setup";
 
 function needsSetup(): boolean {
-  if (process.env.ANTHROPIC_API_KEY?.trim() && process.env.GITHUB_TOKEN?.trim()) {
+  // If USE_CLAUDE_CLI is set, skip API key requirement — uses local Claude Code
+  if (process.env.USE_CLAUDE_CLI === 'true') {
     return false;
   }
   const cfg = readConfigFile();
+  if (cfg.USE_CLAUDE_CLI === 'true') {
+    return false;
+  }
+  if (process.env.ANTHROPIC_API_KEY?.trim() && process.env.GITHUB_TOKEN?.trim()) {
+    return false;
+  }
   const hasAnthropic = !!(process.env.ANTHROPIC_API_KEY?.trim() || cfg.ANTHROPIC_API_KEY?.trim());
   const hasGithub = !!(process.env.GITHUB_TOKEN?.trim() || cfg.GITHUB_TOKEN?.trim());
   return !hasAnthropic || !hasGithub;
