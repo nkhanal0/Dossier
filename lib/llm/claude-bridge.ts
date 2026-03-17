@@ -13,7 +13,10 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { readConfigFile } from '@/lib/config/data-dir';
+import { homedir } from 'node:os';
 
 interface ClaudeBridgeResponse {
   text: string;
@@ -40,7 +43,15 @@ export async function claudeBridgeRequest(
   const model = options?.model || process.env.CLAUDE_CLI_MODEL || 'haiku';
   const timeoutMs = options?.timeoutMs || 180_000; // 3 min default
 
-  const fullPrompt = `<system>\n${systemPrompt}\n</system>\n\n${userMessage}`;
+  // Write system prompt to a temp file instead of passing inline
+  // This keeps the CLI argument small and fast
+  const dossierDir = join(homedir(), '.dossier');
+  mkdirSync(dossierDir, { recursive: true });
+  const promptFile = join(dossierDir, 'current-system-prompt.md');
+  writeFileSync(promptFile, systemPrompt);
+
+  // Tell Claude to read the system prompt file, then respond to the user message
+  const cliPrompt = `Read the system prompt from ${promptFile} and follow those instructions exactly. Then respond to this user message:\n\n${userMessage}`;
 
   const args = [
     '-p',
@@ -48,22 +59,19 @@ export async function claudeBridgeRequest(
     '--output-format', 'stream-json',
     '--no-session-persistence',
     '--model', model,
-    '--permission-mode', 'default',
-    fullPrompt,
+    cliPrompt,
   ];
-
-  // Resume previous session for cache benefits
-  if (lastSessionId) {
-    args.push('--resume', lastSessionId);
-  }
 
   return new Promise((resolve, reject) => {
     const child = spawn('claude', args, {
       timeout: timeoutMs,
+      cwd: homedir(), // Use home dir to avoid loading project CLAUDE.md and .mcp.json
       env: {
         ...process.env,
-        // Prevent hooks from interfering
+        // Prevent hooks and MCP from interfering — massive speedup
+        DISABLE_HOOKS: '1',
         CLAUDE_CODE_DISABLE_HOOKS: '1',
+        CLAUDE_CODE_DISABLE_MCP: '1',
       },
     });
 
@@ -159,7 +167,13 @@ export function claudeBridgeStream(
   const model = options?.model || process.env.CLAUDE_CLI_MODEL || 'haiku';
   const timeoutMs = options?.timeoutMs || 180_000;
 
-  const fullPrompt = `<system>\n${systemPrompt}\n</system>\n\n${userMessage}`;
+  // Write system prompt to file to keep CLI args small
+  const dossierDir = join(homedir(), '.dossier');
+  mkdirSync(dossierDir, { recursive: true });
+  const promptFile = join(dossierDir, 'current-system-prompt.md');
+  writeFileSync(promptFile, systemPrompt);
+
+  const cliPrompt = `Read the system prompt from ${promptFile} and follow those instructions exactly. Then respond to this user message:\n\n${userMessage}`;
 
   const args = [
     '-p',
@@ -167,21 +181,19 @@ export function claudeBridgeStream(
     '--output-format', 'stream-json',
     '--no-session-persistence',
     '--model', model,
-    '--permission-mode', 'default',
-    fullPrompt,
+    cliPrompt,
   ];
-
-  if (lastSessionId) {
-    args.push('--resume', lastSessionId);
-  }
 
   return new ReadableStream<string>({
     start(controller) {
       const child = spawn('claude', args, {
         timeout: timeoutMs,
+        cwd: homedir(),
         env: {
           ...process.env,
+          DISABLE_HOOKS: '1',
           CLAUDE_CODE_DISABLE_HOOKS: '1',
+          CLAUDE_CODE_DISABLE_MCP: '1',
         },
       });
 

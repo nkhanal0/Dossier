@@ -286,7 +286,16 @@ export async function POST(
   let systemPrompt: string;
   let userMessage: string;
 
-  if (mode === "scaffold") {
+  // When using Claude CLI, use a lighter prompt for simple messages
+  // to avoid sending 900+ line system prompts through the CLI pipe
+  const isCliMode = !!(process.env.USE_CLAUDE_CLI === 'true' || (() => { try { const { readConfigFile } = require('@/lib/config/data-dir'); return readConfigFile().USE_CLAUDE_CLI === 'true'; } catch { return false; } })());
+  const isSimpleMessage = message.length < 200 && !message.includes('workflow') && !message.includes('feature') && !message.includes('card') && !message.includes('build');
+
+  if (isCliMode && isSimpleMessage && !hasStructure) {
+    // Lightweight mode for Claude CLI — skip the 900-line planning prompt
+    systemPrompt = `You are Dossier, an AI product planning assistant. Help the user plan and build their product. Be concise and helpful. If the user wants to create workflows or features, ask them to describe their product first.`;
+    userMessage = message;
+  } else if (mode === "scaffold") {
     systemPrompt = buildScaffoldSystemPrompt();
     userMessage = buildScaffoldUserMessage(message, state, linkedArtifacts, repoContext);
   } else if (hasStructure) {
